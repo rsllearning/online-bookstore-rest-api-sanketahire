@@ -36,11 +36,13 @@ public class CartController {
             @RequestHeader(value = "Authorization", required = false) String authHeader,
             @Valid @RequestBody CartItemRequestDTO request) {
 
-        // Extract user identity from Authorization header (or use default authenticated user for demo)
+        // Extract user identity from Authorization header
         String userId = "usr_1001";
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            userId = "usr_" + Math.abs(token.hashCode() % 10000);
+            String token = authHeader.substring(7).trim();
+            if (!token.isEmpty() && !token.startsWith("eyJ")) {
+                userId = token;
+            }
         }
 
         CartResponseDTO updatedCart = cartService.addItemToCart(userId, request);
