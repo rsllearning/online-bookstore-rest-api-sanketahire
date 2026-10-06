@@ -219,3 +219,55 @@ public class CartService {
     }
 }
 ```
+
+
+---
+
+## 🛠️ Task 2: RESTful Endpoint Design
+
+### 2.1 Completed Design Table
+
+Below is the complete RESTful endpoint design table fulfilling all 7 required operations for managing bookstore inventory (Books) and user purchases (Orders), adhering strictly to resource-based URIs, lowercase plural nouns, HTTP verb semantics, Safe/Idempotent properties, and `/v1/` versioning.
+
+| Requirement / Operation | HTTP Method | Endpoint (URL Path) | Safe? (Yes/No) | Idempotent? (Yes/No) | Brief Description |
+| :--- | :---: | :--- | :---: | :---: | :--- |
+| **Fetch list of all books** | `GET` | `/v1/books` | **Yes** | **Yes** | Retrieves a paginated/filtered list of all books in the inventory. Read-only operation. |
+| **Fetch details of a specific book by ID** | `GET` | `/v1/books/{bookId}` | **Yes** | **Yes** | Retrieves complete details for a single book identified by `bookId`. Returns `404` if not found. |
+| **Add a new book to the inventory** | `POST` | `/v1/books` | **No** | **No** | Creates a new book record. Returns `201 Created` with the newly created book and `Location` header. |
+| **Update price of an existing book** | `PATCH` | `/v1/books/{bookId}` | **No** | **No** *(Not Guaranteed)* | Partially updates only the `price` field of the specified book resource without altering other attributes. |
+| **Delete a book record from inventory** | `DELETE` | `/v1/books/{bookId}` | **No** | **Yes** | Permanently removes the book record identified by `bookId` from the inventory. Returns `204 No Content`. |
+| **Place a new book order** | `POST` | `/v1/orders` | **No** | **No** | Submits a new purchase order, validates inventory, decrements stock, and returns `201 Created`. |
+| **Retrieve all orders belonging to a specific user** | `GET` | `/v1/users/{userId}/orders` | **Yes** | **Yes** | Retrieves the full historical list of purchase orders placed by the user identified by `userId`. |
+
+---
+
+### 2.2 Deep Dive on Design Decisions & Constraints
+
+#### 1. Resource-Based Naming vs. Verb-Based Anti-Patterns
+* **REST Principle**: Endpoints must represent **resources (nouns)**, not operational actions (verbs).
+* **Correct**: `POST /v1/books` (HTTP verb indicates creation, URL indicates the target collection).
+* **Anti-Pattern (Avoided)**: `POST /v1/addBook`, `GET /v1/getBooks`, `POST /v1/deleteBookById`.
+
+#### 2. Path Parameters vs. Query Parameters
+* **Path Parameters (`/v1/books/{bookId}`)**: Used to target an **unambiguous, individual resource instance** within a collection (e.g., Book ID `1` or User ID `usr_1001`).
+* **Query Parameters (`/v1/books?category=Software+Engineering&page=1&limit=10`)**: Used to **filter, sort, search, or paginate** across a collection without changing the resource identity.
+
+#### 3. Formal Definitions: Safe vs. Idempotent
+* **Safe**:
+  * An HTTP method is **Safe** if it does **not alter any server-side state or data**.
+  * `GET` is safe because calling it 1,000 times only retrieves data without mutating records.
+  * `POST`, `PUT`, `PATCH`, and `DELETE` are **unsafe** because they mutate database records.
+* **Idempotent**:
+  * An HTTP method is **Idempotent** if executing $N$ identical requests produces the **exact same final server state** as executing $1$ request ($f(f(x)) = f(x)$).
+  * `GET` is idempotent: Repeated calls leave data unchanged.
+  * `DELETE` is idempotent: Deleting `/v1/books/1` the first time deletes the book; deleting it a second time leaves the book deleted.
+  * `PUT` is idempotent: Completely replacing an object with the same state produces the identical result every time.
+  * `PATCH` is **not guaranteed to be idempotent**: E.g., if a patch increments a price (`{"increment": 5}`), repeated executions would continuously raise the price.
+  * `POST` is **neither safe nor idempotent**: Executing `POST /v1/orders` 5 times will create 5 separate purchase orders with 5 distinct IDs.
+
+#### 4. Hierarchical Resource Nesting
+* For relationships where a child entity naturally belongs to a parent context, sub-resource routing is used:
+  * `/v1/users/{userId}/orders` explicitly expresses: *"Retrieve the order sub-collection belonging to user {userId}."*
+
+#### 5. API Versioning Strategy (`/v1/...`)
+* Prefixing the URL path with `/v1/` establishes a clear **API contract**. If breaking schema changes occur in the future, `/v2/` can be introduced alongside `/v1/` without breaking legacy mobile apps or partner integrations.
