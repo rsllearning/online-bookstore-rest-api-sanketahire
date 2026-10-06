@@ -415,3 +415,289 @@ As emphasized in Module 3.6 of the training guide (*"Consistency pays off: pick 
 5. **`field`**: Pinpoints the exact JSON key or array index responsible for the error.
 6. **`details`**: Context-rich debugging metadata without exposing internal database schemas.
 7. **Security Guardrail**: Unhandled exceptions (`500`) are intercepted by `@RestControllerAdvice` to ensure raw Java stack traces, database credentials, or class names are **never leaked** to callers.
+
+
+---
+
+## 🔬 Empirical Verification & Live Test Evidence
+
+The entire system was compiled, started, and empirically verified using real-time HTTP requests, database inspections, and automated integration tests.
+
+### 5.1 Automated Integration Test Results
+
+Running `./mvnw test` executes 11 automated test cases across all modules and error flows:
+
+```text
+[INFO] Running com.bookstore.BookstoreApiIntegrationTests
+[INFO] Tests run: 11, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.800 s -- in com.bookstore.BookstoreApiIntegrationTests
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 11, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] Total time:  7.560 s
+[INFO] Finished at: 2026-10-06T20:13:29+05:30
+[INFO] ------------------------------------------------------------------------
+```
+
+---
+
+### 5.2 Real-Time Live cURL Executions & Raw Responses
+
+#### 1. Task 1: Add to Cart Lifecycle (`POST /v1/cart/items`)
+```bash
+curl -i -X POST http://localhost:8080/v1/cart/items \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer usr_1001" \
+  -d '{"bookId": 1, "quantity": 2}'
+```
+**Live Server Response**:
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Date: Tue, 06 Oct 2026 14:45:06 GMT
+
+{
+  "userId": "usr_1001",
+  "items": [
+    {
+      "bookId": 1,
+      "bookTitle": "Clean Code",
+      "unitPrice": 34.99,
+      "quantity": 2,
+      "itemTotal": 69.98
+    }
+  ],
+  "totalItems": 2,
+  "subtotal": 69.98
+}
+```
+
+---
+
+#### 2. Task 2: Create New Book Record (`POST /v1/books`)
+```bash
+curl -i -X POST http://localhost:8080/v1/books \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Building Microservices",
+    "author": "Sam Newman",
+    "isbn": "978-1492034025",
+    "price": 42.50,
+    "stockQuantity": 30,
+    "category": "Cloud Architecture"
+  }'
+```
+**Live Server Response**:
+```http
+HTTP/1.1 201 Created
+Location: http://localhost:8080/v1/books/6
+Content-Type: application/json
+Date: Tue, 06 Oct 2026 14:45:06 GMT
+
+{
+  "id": 6,
+  "title": "Building Microservices",
+  "author": "Sam Newman",
+  "isbn": "978-1492034025",
+  "price": 42.50,
+  "stockQuantity": 30,
+  "category": "Cloud Architecture",
+  "createdAt": "2026-10-06T14:45:06.151743Z",
+  "updatedAt": "2026-10-06T14:45:06.151754Z"
+}
+```
+
+---
+
+#### 3. Task 2: Update Book Price (`PATCH /v1/books/1`)
+```bash
+curl -i -X PATCH http://localhost:8080/v1/books/1 \
+  -H "Content-Type: application/json" \
+  -d '{"price": 37.99}'
+```
+**Live Server Response**:
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Date: Tue, 06 Oct 2026 14:45:06 GMT
+
+{
+  "id": 1,
+  "title": "Clean Code",
+  "author": "Robert C. Martin",
+  "isbn": "978-0132350884",
+  "price": 37.99,
+  "stockQuantity": 15,
+  "category": "Software Engineering",
+  "createdAt": "2026-10-06T14:44:37.082033Z",
+  "updatedAt": "2026-10-06T14:44:37.082081Z"
+}
+```
+
+---
+
+#### 4. Task 3: Place Order — Success Scenario (`POST /v1/orders`)
+```bash
+curl -i -X POST http://localhost:8080/v1/orders \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer usr_1001" \
+  -d '{
+    "userId": "usr_1001",
+    "items": [
+      {"bookId": 1, "quantity": 2},
+      {"bookId": 4, "quantity": 1}
+    ],
+    "shippingAddress": {
+      "street": "456 Tech Park Way, Floor 4",
+      "city": "Pune",
+      "state": "Maharashtra",
+      "postalCode": "411057",
+      "country": "India"
+    },
+    "paymentMethodId": "pm_card_visa_4242"
+  }'
+```
+**Live Server Response**:
+```http
+HTTP/1.1 201 Created
+Location: http://localhost:8080/v1/orders/ord_1791297906242_5aab
+Content-Type: application/json
+Date: Tue, 06 Oct 2026 14:45:06 GMT
+
+{
+  "orderId": "ord_1791297906242_5aab",
+  "userId": "usr_1001",
+  "status": "CONFIRMED",
+  "totalAmount": 105.97,
+  "shippingAddress": "456 Tech Park Way, Floor 4, Pune, Maharashtra 411057, India",
+  "paymentMethodId": "pm_card_visa_4242",
+  "items": [
+    {
+      "bookId": 1,
+      "bookTitle": "Clean Code",
+      "unitPrice": 37.99,
+      "quantity": 2,
+      "subtotal": 75.98
+    },
+    {
+      "bookId": 4,
+      "bookTitle": "Spring Boot in Action",
+      "unitPrice": 29.99,
+      "quantity": 1,
+      "subtotal": 29.99
+    }
+  ],
+  "createdAt": "2026-10-06T14:45:06.254227Z"
+}
+```
+
+---
+
+#### 5. Task 3: Place Order — Insufficient Stock Error (`POST /v1/orders`)
+```bash
+curl -i -X POST http://localhost:8080/v1/orders \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "usr_1001",
+    "items": [{"bookId": 4, "quantity": 10}],
+    "shippingAddress": {
+      "street": "456 Tech Park Way",
+      "city": "Pune",
+      "state": "Maharashtra",
+      "postalCode": "411057",
+      "country": "India"
+    }
+  }'
+```
+**Live Server Response**:
+```http
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/json
+Date: Tue, 06 Oct 2026 14:45:06 GMT
+
+{
+  "timestamp": "2026-10-06T14:45:06.297069Z",
+  "status": 422,
+  "error": "Unprocessable Entity",
+  "code": "INSUFFICIENT_STOCK",
+  "message": "Requested quantity (10) exceeds available stock (1) for book ID 4.",
+  "field": "items[0].quantity",
+  "details": {
+    "bookId": 4,
+    "requestedQuantity": 10,
+    "availableStock": 1
+  },
+  "path": "/v1/orders"
+}
+```
+
+---
+
+#### 6. Task 2 & 3: Retrieve User Orders (`GET /v1/users/usr_1001/orders`)
+```bash
+curl -i http://localhost:8080/v1/users/usr_1001/orders
+```
+**Live Server Response**:
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+Date: Tue, 06 Oct 2026 14:45:06 GMT
+
+[
+  {
+    "orderId": "ord_1791297906242_5aab",
+    "userId": "usr_1001",
+    "status": "CONFIRMED",
+    "totalAmount": 105.97,
+    "shippingAddress": "456 Tech Park Way, Floor 4, Pune, Maharashtra 411057, India",
+    "paymentMethodId": "pm_card_visa_4242",
+    "items": [
+      {
+        "bookId": 1,
+        "bookTitle": "Clean Code",
+        "unitPrice": 37.99,
+        "quantity": 2,
+        "subtotal": 75.98
+      },
+      {
+        "bookId": 4,
+        "bookTitle": "Spring Boot in Action",
+        "unitPrice": 29.99,
+        "quantity": 1,
+        "subtotal": 29.99
+      }
+    ],
+    "createdAt": "2026-10-06T14:45:06.254227Z"
+  }
+]
+```
+
+---
+
+### 5.3 Interactive Swagger UI & Database Console Verification
+
+| Verification View | Description | Access URL |
+| :--- | :--- | :--- |
+| **Swagger UI Documentation** | Full interactive graphical interface for executing all endpoints. | `http://localhost:8080/swagger-ui.html` |
+| **OpenAPI Specification** | Raw JSON contract definition conforming to OpenAPI 3.0. | `http://localhost:8080/v3/api-docs` |
+| **H2 In-Memory DB Console** | Live relational database inspector showing `BOOKS`, `ORDERS`, `ORDER_ITEMS`, and `CART_ITEMS` tables. | `http://localhost:8080/h2-console` *(JDBC URL: `jdbc:h2:mem:bookstoredb`)* |
+
+---
+
+## 🚀 Quickstart & Verification Guide
+
+### 1. Start Server
+```bash
+./mvnw spring-boot:run
+```
+
+### 2. Run Automated Integration Tests
+```bash
+./mvnw test
+```
+
+### 3. Import Postman Collection
+Import [`bookstore_collection.json`](./bookstore_collection.json) directly into Postman to run pre-built requests and test assertions in one click.
