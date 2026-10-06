@@ -9,23 +9,29 @@
 ---
 
 ## 📑 Table of Contents
-1. [Executive Summary & Problem Statement](#-executive-summary--problem-statement)
-2. [Task 1: Backend Architecture & Request Lifecycle](#-task-1-backend-architecture--request-lifecycle)
-   - 1.1 Complete End-to-End Request Journey
-   - 1.2 Responsibilities of the Application / Business Logic Layer
-   - 1.3 Concrete Implementation in Java / Spring Boot
-3. [Task 2: RESTful Endpoint Design](#-task-2-restful-endpoint-design)
-   - 2.1 Completed Design Table (7 Core Operations)
-   - 2.2 Deep Dive on Design Decisions & Constraints
-4. [Task 3: Data Exchange & JSON Payloads](#-task-3-data-exchange--json-payloads)
-   - 3.1 Successful Order Creation (`201 Created`)
-   - 3.2 Error Handling Scenario (`422 Unprocessable Entity`)
-   - 3.3 Centralized Error Contract Architecture
-5. [Empirical Verification & Live Test Evidence](#-empirical-verification--live-test-evidence)
-6. [Quickstart & Verification Guide](#-quickstart--verification-guide)
+1. [Executive Summary & Problem Statement](#executive-summary)
+2. [Task 1: Backend Architecture & Request Lifecycle](#task-1)
+   - [1.1 Complete End-to-End Request Journey](#task-1-1)
+   - [1.2 Responsibilities of the Application / Business Logic Layer](#task-1-2)
+   - [1.3 Concrete Implementation in Java / Spring Boot](#task-1-3)
+3. [Task 2: RESTful Endpoint Design](#task-2)
+   - [2.1 Completed Design Table (7 Core Operations)](#task-2-1)
+   - [2.2 Deep Dive on Design Decisions & Constraints](#task-2-2)
+4. [Task 3: Data Exchange & JSON Payloads](#task-3)
+   - [3.1 Successful Order Creation (`201 Created`)](#task-3-1)
+   - [3.2 Error Handling Scenario (`422 Unprocessable Entity`)](#task-3-2)
+   - [3.3 Centralized Error Contract Architecture](#task-3-3)
+5. [Empirical Verification & Live Test Evidence](#empirical-verification)
+   - [5.1 Automated Integration Test Results](#verification-5-1)
+   - [5.2 Real-Time Live cURL Executions & Raw Responses](#verification-5-2)
+   - [5.3 Interactive Swagger UI & Database Console Verification](#verification-5-3)
+   - [5.4 Visual Proofs & Screen Captures (Swagger UI Walkthrough)](#verification-5-4)
+   - [5.5 Visual Proofs & Database State (H2 In-Memory Console)](#verification-5-5)
+6. [Quickstart & Verification Guide](#quickstart)
 
 ---
 
+<a id="executive-summary"></a>
 ## 🎯 Executive Summary & Problem Statement
 
 This submission provides the architectural design, formal REST specification, structured JSON data exchange contracts, and a production-grade Java 21 / Spring Boot 3 implementation for an **Online Bookstore System**.
@@ -37,6 +43,7 @@ The project fulfills all requirements across three core tasks:
 
 ---
 
+<a id="task-1"></a>
 ## 🚀 Task 1: Backend Architecture & Request Lifecycle
 
 ### Scenario
@@ -44,6 +51,7 @@ A user browses the online bookstore frontend and clicks the **"Add to Cart"** bu
 
 ---
 
+<a id="task-1-1"></a>
 ### 1.1 Complete End-to-End Request Journey
 
 The interaction follows a deterministic path across physical and logical networking layers, from the client's browser across the internet to the server and back:
@@ -134,6 +142,7 @@ The interaction follows a deterministic path across physical and logical network
 
 ---
 
+<a id="task-1-2"></a>
 ### 1.2 Specific Responsibilities of the Application / Business Logic Layer
 
 During the **"Add to Cart"** interaction, the Application Layer executes five distinct, non-negotiable responsibilities:
@@ -170,6 +179,7 @@ During the **"Add to Cart"** interaction, the Application Layer executes five di
 
 ---
 
+<a id="task-1-3"></a>
 ### 1.3 Concrete Implementation in Java / Spring Boot
 
 The theoretical lifecycle described above is implemented in our codebase inside **`CartController.java`** and **`CartService.java`**:
@@ -223,8 +233,10 @@ public class CartService {
 
 ---
 
+<a id="task-2"></a>
 ## 🛠️ Task 2: RESTful Endpoint Design
 
+<a id="task-2-1"></a>
 ### 2.1 Completed Design Table
 
 Below is the complete RESTful endpoint design table fulfilling all 7 required operations for managing bookstore inventory (Books) and user purchases (Orders), adhering strictly to resource-based URIs, lowercase plural nouns, HTTP verb semantics, Safe/Idempotent properties, and `/v1/` versioning.
@@ -241,6 +253,7 @@ Below is the complete RESTful endpoint design table fulfilling all 7 required op
 
 ---
 
+<a id="task-2-2"></a>
 ### 2.2 Deep Dive on Design Decisions & Constraints
 
 #### 1. Resource-Based Naming vs. Verb-Based Anti-Patterns
@@ -275,12 +288,14 @@ Below is the complete RESTful endpoint design table fulfilling all 7 required op
 
 ---
 
+<a id="task-3"></a>
 ## 📦 Task 3: Data Exchange & JSON Payloads
 
 For the **"Place a new book order"** (`POST /v1/orders`) operation designed in Task 2, the HTTP request and response structures are formally defined below for both success and failure scenarios.
 
 ---
 
+<a id="task-3-1"></a>
 ### 3.1 Successful Order Creation (`201 Created`)
 
 #### 1. Required HTTP Request Headers
@@ -362,6 +377,7 @@ Date: Tue, 06 Oct 2026 14:45:00 GMT
 
 ---
 
+<a id="task-3-2"></a>
 ### 3.2 Error Handling Scenario: Insufficient Inventory Stock
 
 #### 1. Failure Scenario Description
@@ -404,6 +420,7 @@ Date: Tue, 06 Oct 2026 14:46:12 GMT
 
 ---
 
+<a id="task-3-3"></a>
 ### 3.3 Centralized Error Contract Architecture
 
 As emphasized in Module 3.6 of the training guide (*"Consistency pays off: pick one shape for your successful responses and one for your errors"*), our backend enforces a uniform error envelope across the entire API:
@@ -419,17 +436,23 @@ As emphasized in Module 3.6 of the training guide (*"Consistency pays off: pick 
 
 ---
 
+<a id="empirical-verification"></a>
 ## 🔬 Empirical Verification & Live Test Evidence
 
 The entire system was compiled, started, and empirically verified using real-time HTTP requests, database inspections, and automated integration tests.
 
+<a id="verification-5-1"></a>
 ### 5.1 Automated Integration Test Results
 
 Running `./mvnw test` executes 11 automated test cases across all modules and error flows:
 
+| 1. Test Suite Execution Start | 2. 11/11 Tests Passed (BUILD SUCCESS) |
+| :---: | :---: |
+| <img src="./docs/screenshots/terminal_01_test_start.png" width="100%" alt="Terminal Test Run" /><br><sub>*./mvnw test startup & Spring context initialization*</sub> | <img src="./docs/screenshots/terminal_02_test_results_success.png" width="100%" alt="Test Success" /><br><sub>*11 tests passed, 0 failures, BUILD SUCCESS*</sub> |
+
 ```text
 [INFO] Running com.bookstore.BookstoreApiIntegrationTests
-[INFO] Tests run: 11, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.800 s -- in com.bookstore.BookstoreApiIntegrationTests
+[INFO] Tests run: 11, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 5.115 s -- in com.bookstore.BookstoreApiIntegrationTests
 [INFO] 
 [INFO] Results:
 [INFO] 
@@ -437,13 +460,14 @@ Running `./mvnw test` executes 11 automated test cases across all modules and er
 [INFO] 
 [INFO] ------------------------------------------------------------------------
 [INFO] BUILD SUCCESS
-[INFO] Total time:  7.560 s
-[INFO] Finished at: 2026-10-06T20:13:29+05:30
+[INFO] Total time:  6.765 s
+[INFO] Finished at: 2026-10-06T21:42:36+05:30
 [INFO] ------------------------------------------------------------------------
 ```
 
 ---
 
+<a id="verification-5-2"></a>
 ### 5.2 Real-Time Live cURL Executions & Raw Responses
 
 #### 1. Task 1: Add to Cart Lifecycle (`POST /v1/cart/items`)
@@ -677,6 +701,7 @@ Date: Tue, 06 Oct 2026 14:45:06 GMT
 
 ---
 
+<a id="verification-5-3"></a>
 ### 5.3 Interactive Swagger UI & Database Console Verification
 
 | Verification View | Description | Access URL |
@@ -687,6 +712,37 @@ Date: Tue, 06 Oct 2026 14:45:06 GMT
 
 ---
 
+<a id="verification-5-4"></a>
+### 5.4 Visual Proofs & Screen Captures (Swagger UI Walkthrough)
+
+To keep documentation clean, compact, and visually balanced, all Swagger UI screen captures are presented in a unified 3-column grid:
+
+| 1. Swagger UI Overview | 2. Orders, Purchases & Cart | 3. Complete DTO Schemas |
+| :---: | :---: | :---: |
+| <img src="./docs/screenshots/01_swagger_ui_overview.png" width="100%" alt="Swagger UI Overview" /><br><sub>*OAS 3.0 & Books Inventory Endpoints*</sub> | <img src="./docs/screenshots/02_swagger_orders_cart_schemas.png" width="100%" alt="Orders and Cart Endpoints" /><br><sub>*Orders, Cart & Operations List*</sub> | <img src="./docs/screenshots/03_swagger_all_dto_schemas.png" width="100%" alt="DTO Schemas" /><br><sub>*Full DTO Data Models List*</sub> |
+| **4. Path Parameter Input** | **5. Live Execution (200 OK)** | **6. Response Body & Headers** |
+| <img src="./docs/screenshots/04_swagger_get_book_parameter.png" width="100%" alt="Parameter Input" /><br><sub>*GET /v1/books/{bookId} Form*</sub> | <img src="./docs/screenshots/05_swagger_execute_get_book_response.png" width="100%" alt="Execution 200 OK" /><br><sub>*Generated cURL & 200 OK Code*</sub> | <img src="./docs/screenshots/06_swagger_get_book_headers_and_body.png" width="100%" alt="Response Headers & Body" /><br><sub>*Live JSON Payload & Headers*</sub> |
+| **7. Response Schema & 404 Contract** | | |
+| <img src="./docs/screenshots/07_swagger_response_schemas_404.png" width="100%" alt="Response Schemas" /><br><sub>*Formal 200 OK & 404 Schemas*</sub> | | |
+
+---
+
+<a id="verification-5-5"></a>
+### 5.5 Visual Proofs & Database State (H2 In-Memory Console)
+
+The persistence and transactional state of the application were visually verified using the live H2 web console:
+
+| 1. H2 Login & JDBC Config | 2. Database Schema Overview | 3. Books Table (`SELECT *`) |
+| :---: | :---: | :---: |
+| <img src="./docs/screenshots/h2_01_login_screen.png" width="100%" alt="H2 Login Screen" /><br><sub>*JDBC: jdbc:h2:mem:bookstoredb*</sub> | <img src="./docs/screenshots/h2_02_schema_overview.png" width="100%" alt="H2 Schema Overview" /><br><sub>*Tables: BOOKS, ORDERS, CART, ITEMS*</sub> | <img src="./docs/screenshots/h2_03_books_table.png" width="100%" alt="Books Table" /><br><sub>*Live rows with updated stock & price*</sub> |
+| **4. Cart Items (Task 1 State)** | **5. Orders Table (Task 2 & 3 State)** | **6. Order Items Breakdown** |
+| <img src="./docs/screenshots/h2_04_cart_items_table.png" width="100%" alt="Cart Items Table" /><br><sub>*Persistent cart row for usr_1001*</sub> | <img src="./docs/screenshots/h2_05_orders_table.png" width="100%" alt="Orders Table" /><br><sub>*Placed order with total amount*</sub> | <img src="./docs/screenshots/h2_06_order_items_table.png" width="100%" alt="Order Items Table" /><br><sub>*Itemized line records with foreign keys*</sub> |
+| **7. Expanded Schema Hierarchy** | | |
+| <img src="./docs/screenshots/h2_07_expanded_schema_and_books.png" width="100%" alt="Expanded Schema" /><br><sub>*Full relational column hierarchy*</sub> | | |
+
+---
+
+<a id="quickstart"></a>
 ## 🚀 Quickstart & Verification Guide
 
 ### 1. Start Server
