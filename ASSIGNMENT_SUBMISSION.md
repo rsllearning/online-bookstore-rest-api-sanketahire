@@ -271,3 +271,147 @@ Below is the complete RESTful endpoint design table fulfilling all 7 required op
 
 #### 5. API Versioning Strategy (`/v1/...`)
 * Prefixing the URL path with `/v1/` establishes a clear **API contract**. If breaking schema changes occur in the future, `/v2/` can be introduced alongside `/v1/` without breaking legacy mobile apps or partner integrations.
+
+
+---
+
+## 📦 Task 3: Data Exchange & JSON Payloads
+
+For the **"Place a new book order"** (`POST /v1/orders`) operation designed in Task 2, the HTTP request and response structures are formally defined below for both success and failure scenarios.
+
+---
+
+### 3.1 Successful Order Creation (`201 Created`)
+
+#### 1. Required HTTP Request Headers
+```http
+POST /v1/orders HTTP/1.1
+Host: api.bookstore.com
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfMTAwMSIsIm5hbWUiOiJTYW5rZXQgQWhpcmUiLCJyb2xlIjoiQ1VTVE9NRVIiLCJpYXQiOjE3MjgyMjQ0MDB9...
+```
+
+* **`Content-Type: application/json`**: Informs the server that the request body is formatted as a JSON payload.
+* **`Accept: application/json`**: Signals to the server that the client expects a JSON response body.
+* **`Authorization: Bearer <token>`**: Carries the client's cryptographically signed JWT token for stateless authentication and authorization.
+
+---
+
+#### 2. Request JSON Body (`POST /v1/orders`)
+```json
+{
+  "userId": "usr_1001",
+  "items": [
+    {
+      "bookId": 1,
+      "quantity": 2
+    },
+    {
+      "bookId": 4,
+      "quantity": 1
+    }
+  ],
+  "shippingAddress": {
+    "street": "456 Tech Park Way, Floor 4",
+    "city": "Pune",
+    "state": "Maharashtra",
+    "postalCode": "411057",
+    "country": "India"
+  },
+  "paymentMethodId": "pm_card_visa_4242"
+}
+```
+
+---
+
+#### 3. Expected Successful JSON Response Body (`201 Created`)
+
+```http
+HTTP/1.1 201 Created
+Location: /v1/orders/ord_1728224400_9182
+Content-Type: application/json
+Date: Tue, 06 Oct 2026 14:45:00 GMT
+
+{
+  "orderId": "ord_1728224400_9182",
+  "userId": "usr_1001",
+  "status": "CONFIRMED",
+  "totalAmount": 99.97,
+  "shippingAddress": "456 Tech Park Way, Floor 4, Pune, Maharashtra 411057, India",
+  "paymentMethodId": "pm_card_visa_4242",
+  "items": [
+    {
+      "bookId": 1,
+      "bookTitle": "Clean Code",
+      "unitPrice": 34.99,
+      "quantity": 2,
+      "subtotal": 69.98
+    },
+    {
+      "bookId": 4,
+      "bookTitle": "Spring Boot in Action",
+      "unitPrice": 29.99,
+      "quantity": 1,
+      "subtotal": 29.99
+    }
+  ],
+  "createdAt": "2026-10-06T14:45:00.124Z"
+}
+```
+
+---
+
+### 3.2 Error Handling Scenario: Insufficient Inventory Stock
+
+#### 1. Failure Scenario Description
+* A customer submits an order requesting **`10` copies** of *Spring Boot in Action* (Book ID: `4`).
+* The system performs an inventory lookup and discovers that the current stock count in the database is only **`2` copies**.
+* Because the purchase order cannot be completely fulfilled, the Application Layer halts the transaction, rolls back any partial database state, and generates a structured error response.
+
+---
+
+#### 2. HTTP Status Code Selection: `422 Unprocessable Entity`
+* **Why not `400 Bad Request`?**: The request payload is syntactically valid JSON and adheres to all structural type rules (integers, strings, and non-empty arrays).
+* **Why not `500 Internal Server Error`?**: Insufficient inventory is an expected business domain condition, not an unhandled backend crash.
+* **Why `422 Unprocessable Entity`?**: Defined in RFC 4918 / RFC 9110, `422` indicates that the server understands the content type and syntax of the request, but is unable to process the contained business instructions due to semantic/domain validation errors.
+
+---
+
+#### 3. Structured JSON Error Response Body
+
+```http
+HTTP/1.1 422 Unprocessable Entity
+Content-Type: application/json
+Date: Tue, 06 Oct 2026 14:46:12 GMT
+
+{
+  "timestamp": "2026-10-06T14:46:12.891Z",
+  "status": 422,
+  "error": "Unprocessable Entity",
+  "code": "INSUFFICIENT_STOCK",
+  "message": "Requested quantity (10) exceeds available stock (2) for book ID 4.",
+  "field": "items[0].quantity",
+  "details": {
+    "bookId": 4,
+    "bookTitle": "Spring Boot in Action",
+    "requestedQuantity": 10,
+    "availableStock": 2
+  },
+  "path": "/v1/orders"
+}
+```
+
+---
+
+### 3.3 Centralized Error Contract Architecture
+
+As emphasized in Module 3.6 of the training guide (*"Consistency pays off: pick one shape for your successful responses and one for your errors"*), our backend enforces a uniform error envelope across the entire API:
+
+1. **`timestamp`**: Accurate UTC ISO-8601 timestamp for distributed log correlation.
+2. **`status` & `error`**: Standard HTTP numerical code and canonical reason phrase.
+3. **`code`**: Stable, machine-readable application error code enabling frontend clients to trigger localized UI error messages or specific recovery flows.
+4. **`message`**: Clear, human-readable description explaining the exact cause of failure.
+5. **`field`**: Pinpoints the exact JSON key or array index responsible for the error.
+6. **`details`**: Context-rich debugging metadata without exposing internal database schemas.
+7. **Security Guardrail**: Unhandled exceptions (`500`) are intercepted by `@RestControllerAdvice` to ensure raw Java stack traces, database credentials, or class names are **never leaked** to callers.
